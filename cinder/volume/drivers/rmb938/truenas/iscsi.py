@@ -133,6 +133,9 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                     raise VolumeDriverException(
                         "Unknown provisioning type %s for volume %s" % (provisioning_type, volume.id))
 
+        # TODO: the size given here is the minimum
+        # when the zvol is created it will round up to the nearest block size, i.e 1 GiB will round up to 1.03 GiB
+        # unsure how to report this back to openstack as openstack only uses round number sizing
         self.truenas_client.create_zvol(
             name=truenas_volume_id,
             size=volume.size * 1024 * 1024 * 1024,  # Cinder creates volumes in GiB (1024) to convert to bytes
@@ -180,6 +183,10 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                 'truenas_volume_from_snapshot_id': snapshot.provider_id
             }
 
+        if snapshot.volume_size != volume.size:
+            # Extend the volume if it's a different size
+            self.extend_volume(volume, volume.size)
+
         return model_update
 
     def delete_snapshot(self, snapshot: Snapshot):
@@ -209,6 +216,9 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             # volume has no provider id, so we didn't actually create it
             raise VolumeDriverException("volume %s does not exist in TrueNAS so we cant expand it" % volume.id)
 
+        # TODO: the size given here is the minimum
+        # when the zvol is created it will round up to the nearest block size, i.e 1 GiB will round up to 1.03 GiB
+        # unsure how to report this back to openstack as openstack only uses round number sizing
         self.truenas_client.expand_zvol(volume.provider_id, new_size * 1024 * 1024 * 1024)
 
     def remove_export(self, context, volume):

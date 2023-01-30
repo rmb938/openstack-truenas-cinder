@@ -1,6 +1,7 @@
 import logging
 from typing import Tuple, Any, Optional
 
+import requests.exceptions
 from cinder import interface
 from cinder.common.constants import ISCSI
 from cinder.context import RequestContext
@@ -187,7 +188,13 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             LOG.info("Snapshot %s has no provider_id during a delete so ignore it" % snapshot.id)
             return
 
-        self.truenas_client.delete_snapshot(snapshot.provider_id)
+        try:
+            self.truenas_client.delete_snapshot(snapshot.provider_id)
+        except requests.exceptions.HTTPError as e:
+            try:
+                raise VolumeBackendAPIException(e.request.json()['message'])
+            except requests.exceptions.JSONDecodeError:
+                raise VolumeBackendAPIException(e.request.text)
 
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:

@@ -51,12 +51,15 @@ class TrueNASAPIClient(object):
 
     def create_zvol(self, name: str, size: int, block_size: int, sparse: bool):
         url = urljoin(self.__url, "pool/dataset")
-        resp = self.__client_session.post(url, json={
+        zvol_props = {
             "name": name,
             "type": 'VOLUME',
             "volsize": size,
             "volblocksize": block_size,
             "sparse": sparse
-        })
-        # TODO: we probably want to wrap this with a custom exception
-        resp.raise_for_status()
+        }
+        resp = self.__client_session.post(url, json=zvol_props)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error creating zvol %s: %s" % (zvol_props, resp.text))
+            resp.raise_for_status()

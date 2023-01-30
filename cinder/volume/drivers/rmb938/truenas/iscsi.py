@@ -192,9 +192,9 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             self.truenas_client.delete_snapshot(snapshot.provider_id)
         except requests.exceptions.HTTPError as e:
             try:
-                raise VolumeBackendAPIException(e.request.json()['message'])
+                raise VolumeBackendAPIException(e.response.json()['message'])
             except:
-                raise VolumeBackendAPIException(e.request.text)
+                raise VolumeBackendAPIException(e.response.text)
 
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:

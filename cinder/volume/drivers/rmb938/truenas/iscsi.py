@@ -146,3 +146,6 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
     def extend_volume(self, volume: Volume, new_size):
         raise NotImplementedError()
+
+    def remove_export(self, context, volume):
+        pass

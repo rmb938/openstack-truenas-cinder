@@ -15,7 +15,7 @@ class TrueNASAPIClient(object):
         # TODO: ssl configuration if it's provided
 
     def get_dataset(self, dataset_id: str) -> Optional[Dataset]:
-        url = urljoin(self.__url, "/pool/dataset/id/%s" % quote_plus(dataset_id.encode('utf-8')))
+        url = urljoin(self.__url, "/pool/dataset/id/%s" % quote_plus(dataset_id))
         resp = self.__client_session.get(url)
         output_data = resp.json()
         if resp.status_code == 404:

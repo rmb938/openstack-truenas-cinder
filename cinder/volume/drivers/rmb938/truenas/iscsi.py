@@ -30,6 +30,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         LOG.info('truenas: Init Cinder Driver')
         super(TrueNASISCSIDriver, self).__init__(*args, **kwargs)
+        self.configuration.append_config_values(truenas_connection_opts)
         self.truenas_client: Optional[TrueNASAPIClient] = None
 
     @classmethod
@@ -39,7 +40,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         return truenas_connection_opts + additional_opts
 
     def check_for_setup_error(self):
-        truenas_dataset_path = self.configuration.safe_get('truenas_dataset_path')
+        truenas_dataset_path = self.configuration.truenas_dataset_path
         dataset = self.truenas_client.get_dataset(truenas_dataset_path)
         if dataset is None:
             raise VolumeBackendAPIException('Could not find TrueNAS dataset at path %s' % truenas_dataset_path)
@@ -48,14 +49,14 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             raise VolumeBackendAPIException('truenas_dataset_path %s is not a filesystem' % truenas_dataset_path)
 
     def do_setup(self, context: RequestContext):
-        truenas_url = self.configuration.safe_get('truenas_url')
-        truenas_api_key = self.configuration.safe_get('truenas_apikey')
+        truenas_url = self.configuration.truenas_url
+        truenas_api_key = self.configuration.truenas_apikey
         self.truenas_client = TrueNASAPIClient(truenas_url, truenas_api_key)
 
     def _update_volume_stats(self):
-        reserved_percentage = self.configuration.safe_get('reserved_percentage')
-        backend_name = self.configuration.safe_get('volume_backend_name')
-        truenas_dataset_path = self.configuration.safe_get('truenas_dataset_path')
+        reserved_percentage = self.configuration.reserved_percentage
+        backend_name = self.configuration.volume_backend_name
+        truenas_dataset_path = self.configuration.truenas_dataset_path
 
         dataset = self.truenas_client.get_dataset(truenas_dataset_path)
         total_capacity_gb = dataset.size / 1024 / 1024 / 1024
@@ -93,7 +94,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         raise NotImplementedError()
 
     def create_volume(self, volume: Volume) -> dict:
-        truenas_dataset_path = self.configuration.safe_get('truenas_dataset_path')
+        truenas_dataset_path = self.configuration.truenas_dataset_path
         truenas_volume_name = "%s/%s" % (truenas_dataset_path, volume.name_id)
 
         sparse = False  # TODO: make this default a config option

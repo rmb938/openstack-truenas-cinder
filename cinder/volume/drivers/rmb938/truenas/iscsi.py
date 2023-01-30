@@ -158,7 +158,28 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         raise NotImplementedError()
 
     def create_volume_from_snapshot(self, volume: Volume, snapshot: Snapshot) -> dict:
-        raise NotImplementedError()
+        truenas_dataset_path = self.configuration.truenas_dataset_path
+        truenas_volume_id = "%s/%s" % (truenas_dataset_path, volume.name_id)
+
+        self.truenas_client.clone_snapshot(snapshot.provider_id, truenas_volume_id)
+
+        model_update = {
+            'provider_id': truenas_volume_id,
+        }
+
+        if not volume.metadata:
+            model_update['metadata'] = {
+                'truenas_volume_id': truenas_volume_id,
+                'truenas_volume_from_snapshot_id': snapshot.provider_id
+            }
+        else:
+            model_update['metadata'] = {
+                **volume.metadata,
+                'truenas_volume_id': truenas_volume_id,
+                'truenas_volume_from_snapshot_id': snapshot.provider_id
+            }
+
+        return model_update
 
     def delete_snapshot(self, snapshot: Snapshot):
         if snapshot.provider_id is None:

@@ -90,3 +90,15 @@ class TrueNASAPIClient(object):
             # TODO: we probably want to wrap this with a custom exception
             LOG.error("error deleting snapshot %s: %s" % (snapshot_id, resp.text))
             resp.raise_for_status()
+
+    def clone_snapshot(self, snapshot_id, dataset_id):
+        url = urljoin(self.__url, "zfs/snapshot/clone")
+        snapshot_props = {
+            "snapshot": snapshot_id,
+            "dataset_dst": dataset_id
+        }
+        resp = self.__client_session.post(url, json=snapshot_props)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error cloning snapshot %s: %s" % (snapshot_props, resp.text))
+            resp.raise_for_status()

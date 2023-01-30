@@ -193,7 +193,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         except requests.exceptions.HTTPError as e:
             try:
                 raise VolumeBackendAPIException(e.request.json()['message'])
-            except requests.exceptions.JSONDecodeError:
+            except:
                 raise VolumeBackendAPIException(e.request.text)
 
     def delete_volume(self, volume: Volume):

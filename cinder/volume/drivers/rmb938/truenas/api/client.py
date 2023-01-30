@@ -27,7 +27,6 @@ class TrueNASAPIClient(object):
             LOG.error("error getting dataset %s: %s" % (dataset_id, resp.text))
             resp.raise_for_status()
 
-        LOG.info("get dataset response: %s: %s" % (url, resp.text))
         output_data = resp.json()
         if output_data['type'] == 'VOLUME':
             dataset_type = DatasetType.VOLUME

@@ -89,7 +89,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
     def clone_image(self, context: RequestContext, volume: Volume, image_location: Tuple[str, dict[str, str]],
                     image_meta: dict[str, Any], image_service: GlanceImageService):
-        raise NotImplementedError()
+        return {}, False
 
     def create_snapshot(self, snapshot: Snapshot) -> dict:
         if snapshot.volume.provider_id is None:
@@ -161,12 +161,36 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
     def create_cloned_volume(self, volume: Volume, src_vref: Volume):
         raise NotImplementedError()
 
+        # TODO: create a snapshot in openstack
+        #  create a snapshot in truenas
+        #  then create a snapshot from that volume
+
+        model_update = {
+            'provider_id': truenas_volume_id,
+        }
+
+        if not volume.metadata:
+            model_update['metadata'] = {
+                'truenas_volume_id': truenas_volume_id,
+                'truenas_volume_from_snapshot_id': ''
+            }
+        else:
+            model_update['metadata'] = {
+                **volume.metadata,
+                'truenas_volume_id': truenas_volume_id,
+                'truenas_volume_from_snapshot_id': ''
+            }
+
+        return model_update
+
     def create_volume_from_snapshot(self, volume: Volume, snapshot: Snapshot) -> dict:
         truenas_dataset_path = self.configuration.truenas_dataset_path
         truenas_volume_id = "%s/%s" % (truenas_dataset_path, volume.name_id)
 
         self.truenas_client.clone_snapshot(snapshot.provider_id, truenas_volume_id)
 
+        # set provider id so downstream functions can use it
+        volume.provider_id = truenas_volume_id
         model_update = {
             'provider_id': truenas_volume_id,
         }

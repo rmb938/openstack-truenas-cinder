@@ -70,3 +70,23 @@ class TrueNASAPIClient(object):
             # TODO: we probably want to wrap this with a custom exception
             LOG.error("error deleting dataset %s: %s" % (dataset_id, resp.text))
             resp.raise_for_status()
+
+    def create_snapshot(self, name: str, dataset: str):
+        url = urljoin(self.__url, "zfs/snapshot")
+        snapshot_props = {
+            "dataset": dataset,
+            "name": name
+        }
+        resp = self.__client_session.post(url, json=snapshot_props)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error creating snapshot %s: %s" % (snapshot_props, resp.text))
+            resp.raise_for_status()
+
+    def delete_snapshot(self, snapshot_id):
+        url = urljoin(self.__url, "zfs/snapshot/id/%s" % quote_plus(snapshot_id))
+        resp = self.__client_session.delete(url)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error deleting snapshot %s: %s" % (snapshot_id, resp.text))
+            resp.raise_for_status()

@@ -90,12 +90,33 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                     image_meta: dict[str, Any], image_service: GlanceImageService):
         raise NotImplementedError()
 
-    def create_snapshot(self, snapshot: Snapshot):
-        raise NotImplementedError()
+    def create_snapshot(self, snapshot: Snapshot) -> dict:
+        if snapshot.volume.provider_id is None:
+            # volume has no provider id, so we didn't actually create it
+            raise VolumeDriverException(
+                "Volume %s does not exist in the backend so we can't create a snapshot" % snapshot.volume.id)
+
+        truenas_snapshot_id = "%s@%s" % (snapshot.volume.provider_id, snapshot.id)
+
+        model_update = {
+            'provider_id': truenas_snapshot_id
+        }
+
+        if not snapshot.metadata:
+            model_update['metadata'] = {
+                'truenas_snapshot_id': truenas_snapshot_id,
+            }
+        else:
+            model_update['metadata'] = {
+                **snapshot.metadata,
+                'truenas_snapshot_id': truenas_snapshot_id,
+            }
+
+        return model_update
 
     def create_volume(self, volume: Volume) -> dict:
         truenas_dataset_path = self.configuration.truenas_dataset_path
-        truenas_volume_name = "%s/%s" % (truenas_dataset_path, volume.name_id)
+        truenas_volume_id = "%s/%s" % (truenas_dataset_path, volume.name_id)
 
         sparse = False  # TODO: make this default a config option
         if volume.volume_type is not None:
@@ -110,36 +131,43 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                         "Unknown provisioning type %s for volume %s" % (provisioning_type, volume.id))
 
         self.truenas_client.create_zvol(
-            name=truenas_volume_name,
+            name=truenas_volume_id,
             size=volume.size * 1024 * 1024 * 1024,  # Cinder creates volumes in GiB (1024) to convert to bytes
             sparse=sparse
         )
 
         model_update = {
-            'provider_id': truenas_volume_name,
+            'provider_id': truenas_volume_id,
         }
 
         if not volume.metadata:
             model_update['metadata'] = {
-                'truenas_volume_name': truenas_volume_name
+                'truenas_volume_id': truenas_volume_id
             }
         else:
             model_update['metadata'] = {
                 **volume.metadata,
-                'truenas_volume_name': truenas_volume_name
+                'truenas_volume_id': truenas_volume_id
             }
 
         return model_update
+
+    def create_cloned_volume(self, volume: Volume, src_vref: Volume):
+        raise NotImplementedError()
 
     def create_volume_from_snapshot(self, volume: Volume, snapshot: Snapshot) -> dict:
         raise NotImplementedError()
 
     def delete_snapshot(self, snapshot: Snapshot):
-        raise NotImplementedError()
+        if snapshot.provider_id is None:
+            # snapshot has no provider id, so we didn't actually create it
+            return
+
+        self.truenas_client.delete_snapshot(snapshot.provider_id)
 
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:
-            # volume has no provider id so we didn't actually create it
+            # volume has no provider id, so we didn't actually create it
             return
 
         self.truenas_client.delete_dataset(volume.provider_id)

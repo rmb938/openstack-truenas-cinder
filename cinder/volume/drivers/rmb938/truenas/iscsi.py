@@ -112,7 +112,6 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         self.truenas_client.create_zvol(
             name=truenas_volume_name,
             size=volume.size * 1024 * 1024 * 1024,  # Cinder creates volumes in GiB (1024) to convert to bytes
-            block_size=512,
             sparse=sparse
         )
 

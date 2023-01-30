@@ -49,13 +49,12 @@ class TrueNASAPIClient(object):
             origin=output_data['origin']['value']
         )
 
-    def create_zvol(self, name: str, size: int, block_size: int, sparse: bool):
+    def create_zvol(self, name: str, size: int, sparse: bool):
         url = urljoin(self.__url, "pool/dataset")
         zvol_props = {
             "name": name,
             "type": 'VOLUME',
             "volsize": size,
-            "volblocksize": block_size,
             "sparse": sparse
         }
         resp = self.__client_session.post(url, json=zvol_props)

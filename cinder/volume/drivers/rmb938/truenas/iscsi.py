@@ -184,6 +184,12 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             }
 
         if snapshot.volume_size != volume.size:
+            # it takes a bit for the dataset to show in the api
+            # so just loop for a bit until it's not none
+            dataset = None
+            while dataset is None:
+                dataset = self.truenas_client.get_dataset(truenas_volume_id)
+
             # Extend the volume if it's a different size
             self.extend_volume(volume, volume.size)
 

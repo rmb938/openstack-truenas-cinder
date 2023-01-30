@@ -1,9 +1,8 @@
 from typing import Optional
 
 import requests
-from requests.compat import urljoin, quote_plus
-
 from cinder.volume.drivers.rmb938.truenas.api.objects.dataset import Dataset, DatasetType
+from requests.compat import urljoin, quote_plus
 
 
 class TrueNASAPIClient(object):
@@ -16,7 +15,7 @@ class TrueNASAPIClient(object):
         # TODO: ssl configuration if it's provided
 
     def get_dataset(self, dataset_id: str) -> Optional[Dataset]:
-        url = urljoin(self.__url, "/pool/dataset/id/%s" % quote_plus(dataset_id))
+        url = urljoin(self.__url, "/pool/dataset/id/%s" % quote_plus(dataset_id.encode('utf-8')))
         resp = self.__client_session.get(url)
         output_data = resp.json()
         if resp.status_code == 404:

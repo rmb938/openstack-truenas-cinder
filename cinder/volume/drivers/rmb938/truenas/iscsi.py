@@ -99,7 +99,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         sparse = False  # TODO: make this default a config option
         if volume.volume_type is not None:
-            provisioning_type = volume_types.get_volume_type_extra_specs(volume.volume_type, 'provisioning:type')
+            provisioning_type = volume_types.get_volume_type_extra_specs(volume.volume_type.id, 'provisioning:type')
             if provisioning_type:
                 if provisioning_type == 'thin':
                     sparse = True

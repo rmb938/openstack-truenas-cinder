@@ -11,14 +11,14 @@ LOG = logging.getLogger(__name__)
 class TrueNASAPIClient(object):
 
     def __init__(self, url: str, api_key: str):
-        self.__url = urljoin(url, "/api/v2.0")
+        self.__url = urljoin(url, "/api/v2.0/")
 
         self.__client_session = requests.Session()
         self.__client_session.headers.update({'Authorization': 'Bearer %s' % api_key})
         # TODO: ssl configuration if it's provided
 
     def get_dataset(self, dataset_id: str) -> Optional[Dataset]:
-        url = urljoin(self.__url, "/pool/dataset/id/%s" % quote_plus(dataset_id))
+        url = urljoin(self.__url, "pool/dataset/id/%s" % quote_plus(dataset_id))
         resp = self.__client_session.get(url)
         if resp.status_code == 404:
             return None
@@ -51,7 +51,7 @@ class TrueNASAPIClient(object):
         )
 
     def create_zvol(self, name: str, size: int, block_size: int, sparse: bool):
-        url = urljoin(self.__url, "/pool/dataset")
+        url = urljoin(self.__url, "pool/dataset")
         resp = self.__client_session.post(url, json={
             "name": name,
             "type": 'VOLUME',

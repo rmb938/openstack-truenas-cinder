@@ -98,7 +98,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         truenas_snapshot_id = "%s@%s" % (snapshot.volume.provider_id, snapshot.id)
 
-        self.truenas_client.create_snapshot(name=truenas_snapshot_id, dataset=snapshot.volume.provider_id)
+        self.truenas_client.create_snapshot(name=snapshot.id, dataset=snapshot.volume.provider_id)
 
         model_update = {
             'provider_id': truenas_snapshot_id

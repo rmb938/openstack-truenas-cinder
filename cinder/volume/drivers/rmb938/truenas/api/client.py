@@ -62,3 +62,11 @@ class TrueNASAPIClient(object):
             # TODO: we probably want to wrap this with a custom exception
             LOG.error("error creating zvol %s: %s" % (zvol_props, resp.text))
             resp.raise_for_status()
+
+    def delete_dataset(self, dataset_id):
+        url = urljoin(self.__url, "pool/dataset/id/%s" % quote_plus(dataset_id))
+        resp = self.__client_session.delete(url)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error deleting dataset %s: %s" % (dataset_id, resp.text))
+            resp.raise_for_status()

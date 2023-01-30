@@ -138,7 +138,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         raise NotImplementedError()
 
     def delete_volume(self, volume: Volume):
-        raise NotImplementedError()
+        if volume.provider_id is None:
+            # volume has no provider id so we didn't actually create it
+            return
+
+        self.truenas_client.delete_dataset(volume.provider_id)
 
     def extend_volume(self, volume: Volume, new_size):
         raise NotImplementedError()

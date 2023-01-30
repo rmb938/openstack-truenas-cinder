@@ -5,7 +5,7 @@ import requests.exceptions
 from cinder import interface
 from cinder.common.constants import ISCSI
 from cinder.context import RequestContext
-from cinder.exception import VolumeBackendAPIException, VolumeDriverException
+from cinder.exception import VolumeBackendAPIException, VolumeDriverException, SnapshotIsBusy
 from cinder.image.glance import GlanceImageService
 from cinder.objects.snapshot import Snapshot
 from cinder.objects.volume import Volume
@@ -190,11 +190,8 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         try:
             self.truenas_client.delete_snapshot(snapshot.provider_id)
-        except requests.exceptions.HTTPError as e:
-            try:
-                raise VolumeBackendAPIException(e.response.json()['message'])
-            except:
-                raise VolumeBackendAPIException(e.response.text)
+        except requests.exceptions.HTTPError:
+            raise SnapshotIsBusy()
 
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:

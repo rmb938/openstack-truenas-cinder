@@ -98,6 +98,8 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         truenas_snapshot_id = "%s@%s" % (snapshot.volume.provider_id, snapshot.id)
 
+        self.truenas_client.create_snapshot(name=truenas_snapshot_id, dataset=snapshot.volume.provider_id)
+
         model_update = {
             'provider_id': truenas_snapshot_id
         }
@@ -161,6 +163,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
     def delete_snapshot(self, snapshot: Snapshot):
         if snapshot.provider_id is None:
             # snapshot has no provider id, so we didn't actually create it
+            LOG.info("Snapshot %s has no provider_id during a delete so ignore it" % snapshot.id)
             return
 
         self.truenas_client.delete_snapshot(snapshot.provider_id)
@@ -168,6 +171,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:
             # volume has no provider id, so we didn't actually create it
+            LOG.info("Volume %s has no provider_id during a delete so ignore it" % volume.id)
             return
 
         self.truenas_client.delete_dataset(volume.provider_id)

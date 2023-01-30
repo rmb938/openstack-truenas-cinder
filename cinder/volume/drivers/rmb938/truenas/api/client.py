@@ -63,6 +63,17 @@ class TrueNASAPIClient(object):
             LOG.error("error creating zvol %s: %s" % (zvol_props, resp.text))
             resp.raise_for_status()
 
+    def expand_zvol(self, dataset_id, size: int):
+        url = urljoin(self.__url, "pool/dataset/id/%s" % quote_plus(dataset_id))
+        zvol_props = {
+            "volsize": size,
+        }
+        resp = self.__client_session.put(url, json=zvol_props)
+        if resp.status_code != 200:
+            # TODO: we probably want to wrap this with a custom exception
+            LOG.error("error expanding zvol %s: %s" % (zvol_props, resp.text))
+            resp.raise_for_status()
+
     def delete_dataset(self, dataset_id):
         url = urljoin(self.__url, "pool/dataset/id/%s" % quote_plus(dataset_id))
         resp = self.__client_session.delete(url)

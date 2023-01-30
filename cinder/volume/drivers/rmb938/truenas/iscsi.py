@@ -191,6 +191,9 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         try:
             self.truenas_client.delete_snapshot(snapshot.provider_id)
         except requests.exceptions.HTTPError:
+            # HTTP Error usually means the snapshot is in use
+            # so just return snapshot is busy
+            # TODO: are there other errors we care about?
             raise SnapshotIsBusy()
 
     def delete_volume(self, volume: Volume):
@@ -202,7 +205,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         self.truenas_client.delete_dataset(volume.provider_id)
 
     def extend_volume(self, volume: Volume, new_size):
-        raise NotImplementedError()
+        if volume.provider_id is None:
+            # volume has no provider id, so we didn't actually create it
+            raise VolumeDriverException("volume %s does not exist in TrueNAS so we cant expand it" % volume.id)
+
+        self.truenas_client.expand_zvol(volume.provider_id, new_size * 1024 * 1024 * 1024)
 
     def remove_export(self, context, volume):
         pass

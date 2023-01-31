@@ -13,7 +13,7 @@ TrueNAS Driver for OpenStack Cinder.
 
 - [ ] All [Core Functionality](https://docs.openstack.org/cinder/latest/contributor/drivers.html#minimum-features)
   features.
-- [ ] Thin & Thick Volumes
+- [X] Thin & Thick Volumes
 - [ ] Clone Image - efficiently create volumes based on images backed by volumes using ZFS Snapshots
     * Only Raw & Bare images are supported
 - [ ] Manage/Unmanage Support - Will be a nice to have, most likely possible to implement

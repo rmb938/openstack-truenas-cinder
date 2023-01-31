@@ -207,6 +207,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                 'truenas_volume_from_snapshot_id': snapshot.provider_id
             }
 
+        # check if snapshot is different size
         if snapshot.volume_size != volume.size:
             # it takes a bit for the dataset to show in the api
             # so just loop for a bit until it's not none

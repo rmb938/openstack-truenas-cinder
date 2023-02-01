@@ -262,7 +262,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
                     # snapshot is in use so raise is busy
                     if 'snapshot has dependent clones' in e.response.json()['message']:
-                        raise SnapshotIsBusy()
+                        raise SnapshotIsBusy(snapshot_name=snapshot.name)
                 except json.JSONDecoder:
                     raise e
 

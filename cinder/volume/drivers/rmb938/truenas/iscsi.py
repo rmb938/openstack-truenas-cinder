@@ -279,9 +279,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 422:
                 try:
+                    response_data = e.response.json()
                     # volume not found so return safely
-                    if 'not found' in e.response.json()['message']:
-                        return
+                    if 'null' in response_data:
+                        if 'not found' in response_data['null'][0]['message']:
+                            return
                 except json.JSONDecodeError:
                     raise e
 

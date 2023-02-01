@@ -282,7 +282,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
                     response_data = e.response.json()
                     # volume not found so return safely
                     if 'null' in response_data:
-                        if 'not found' in response_data['null'][0]['message']:
+                        if 'does not exist' in response_data['null'][0]['message']:
                             return
                 except json.JSONDecodeError:
                     raise e

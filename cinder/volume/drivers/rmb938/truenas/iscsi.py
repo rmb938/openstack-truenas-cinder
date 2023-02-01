@@ -1,4 +1,3 @@
-import errno
 import json
 import logging
 from typing import Tuple, Any, Optional
@@ -258,11 +257,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             if e.response.status_code == 422:
                 try:
                     # snapshot not found so return safely
-                    if e.response.json()['errno'] == errno.ENOENT:
+                    if 'not found' in e.response.json()['message']:
                         return
 
                     # snapshot is in use so raise is busy
-                    if e.response.json()['errno'] == errno.EFAULT:
+                    if 'snapshot has dependent clones' in e.response.json()['message']:
                         raise SnapshotIsBusy()
                 except json.JSONDecoder:
                     raise e
@@ -281,7 +280,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             if e.response.status_code == 422:
                 try:
                     # volume not found so return safely
-                    if e.response.json()['errno'] == errno.ENOENT:
+                    if 'not found' in e.response.json()['message']:
                         return
                 except json.JSONDecoder:
                     raise e

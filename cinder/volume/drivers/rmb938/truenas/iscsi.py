@@ -131,13 +131,13 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             'provider_id': truenas_snapshot_id
         }
 
-        if not snapshot.metadata:
-            model_update['metadata'] = {
+        if not snapshot.admin_metadata:
+            model_update['admin_metadata'] = {
                 'truenas_snapshot_id': truenas_snapshot_id,
             }
         else:
-            model_update['metadata'] = {
-                **snapshot.metadata,
+            model_update['admin_metadata'] = {
+                **snapshot.admin_metadata,
                 'truenas_snapshot_id': truenas_snapshot_id,
             }
 
@@ -172,13 +172,13 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             'provider_id': truenas_volume_id,
         }
 
-        if not volume.metadata:
-            model_update['metadata'] = {
+        if not volume.admin_metadata:
+            model_update['admin_metadata'] = {
                 'truenas_volume_id': truenas_volume_id
             }
         else:
-            model_update['metadata'] = {
-                **volume.metadata,
+            model_update['admin_metadata'] = {
+                **volume.admin_metadata,
                 'truenas_volume_id': truenas_volume_id
             }
 
@@ -196,13 +196,13 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             'provider_id': truenas_volume_id,
         }
 
-        if not volume.metadata:
-            model_update['metadata'] = {
+        if not volume.admin_metadata:
+            model_update['admin_metadata'] = {
                 'truenas_volume_id': truenas_volume_id
             }
         else:
-            model_update['metadata'] = {
-                **volume.metadata,
+            model_update['admin_metadata'] = {
+                **volume.admin_metadata,
                 'truenas_volume_id': truenas_volume_id
             }
 
@@ -220,14 +220,14 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             'provider_id': truenas_volume_id,
         }
 
-        if not volume.metadata:
-            model_update['metadata'] = {
+        if not volume.admin_metadata:
+            model_update['admin_metadata'] = {
                 'truenas_volume_id': truenas_volume_id,
                 'truenas_volume_from_snapshot_id': snapshot.provider_id
             }
         else:
-            model_update['metadata'] = {
-                **volume.metadata,
+            model_update['admin_metadata'] = {
+                **volume.admin_metadata,
                 'truenas_volume_id': truenas_volume_id,
                 'truenas_volume_from_snapshot_id': snapshot.provider_id
             }
@@ -318,8 +318,8 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         #   - target + extend combos must be unique so check this error and ignore it
 
         model_update = {
-            'metadata': {
-                **volume.metadata,
+            'admin_metadata': {
+                **volume.admin_metadata,
                 'truenas_iscsi_target_id': '0',
                 'truenas_iscsi_extent_id': '0',
             }
@@ -333,20 +333,20 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             raise VolumeDriverException("Volume %s does not have provider_id set so we "
                                         "cannot remove export" % volume.id)
 
-        if not volume.metadata:
-            raise VolumeDriverException("Volume %s is missing metadata so we don't know "
+        if not volume.admin_metadata:
+            raise VolumeDriverException("Volume %s is missing admin_metadata so we don't know "
                                         "how to remove exports" % volume.id)
 
-        if 'truenas_iscsi_target_id' not in volume.metadata:
+        if 'truenas_iscsi_target_id' not in volume.admin_metadata:
             raise VolumeDriverException("Volume %s is missing 'truenas_iscsi_target_id' in "
-                                        "metadata so we don't know how to remove exports" % volume.id)
+                                        "admin_metadata so we don't know how to remove exports" % volume.id)
 
-        if 'truenas_iscsi_extent_id' not in volume.metadata:
+        if 'truenas_iscsi_extent_id' not in volume.admin_metadata:
             raise VolumeDriverException("Volume %s is missing 'truenas_iscsi_extent_id' in "
-                                        "metadata so we don't know how to remove exports" % volume.id)
+                                        "admin_metadata so we don't know how to remove exports" % volume.id)
 
-        truenas_iscsi_target_id = volume.metadata['truenas_iscsi_target_id']
-        truenas_iscsi_extent_id = volume.metadata['truenas_iscsi_extent_id']
+        truenas_iscsi_target_id = volume.admin_metadata['truenas_iscsi_target_id']
+        truenas_iscsi_extent_id = volume.admin_metadata['truenas_iscsi_extent_id']
 
         # TODO: delete extend
         # TODO: delete target

@@ -1,3 +1,5 @@
+import errno
+import json
 import logging
 from typing import Tuple, Any, Optional
 
@@ -82,13 +84,38 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         }
 
     def initialize_connection(self, volume: Volume, connector: dict):
-        raise NotImplementedError()
+        if volume.provider_id is None:
+            # volume has no provider id, so we didn't actually create it
+            raise VolumeDriverException(
+                "Volume %s does not have provider_id set so we cannot make a connection" % volume.id)
+
+        # TODO: we don't create anything here in truenas, just form this info
+
+        # TODO: support multi-path somehow, would be multiple ips on the portal, but the iqn is the same?
+
+        return {
+            'driver_volume_type': 'iscsi',
+            'data': {
+                'target_discovered': False,
+                'target_iqn': 'iqn.2005-10.org.freenas.ctl:$portalName',
+                # TODO: portalName is probably the volume.provider_id
+                # TODO: pull iqn.2005-10.org.freenas.ctl prefix from iscsi/global
+                'target_portal': '127.0.0.0.1:3260',
+                # TODO: pull from iscsi/portal/id/1 make the id configurable, make sure the IP returned is not 0.0.0.0
+                'volume_id': volume.id,
+                'discard': False,
+            }
+        }
 
     def terminate_connection(self, volume: Volume, connector: dict, **kwargs):
-        raise NotImplementedError()
+        pass
 
     def clone_image(self, context: RequestContext, volume: Volume, image_location: Tuple[str, dict[str, str]],
                     image_meta: dict[str, Any], image_service: GlanceImageService):
+
+        # TODO: do a replication task since we don't want a hard dependency
+        #  between the volume and the source image
+
         return {}, False
 
     def create_snapshot(self, snapshot: Snapshot) -> dict:
@@ -160,10 +187,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
     def create_cloned_volume(self, volume: Volume, src_vref: Volume):
         raise NotImplementedError()
+        truenas_dataset_path = self.configuration.truenas_dataset_path
+        truenas_volume_id = "%s/%s" % (truenas_dataset_path, volume.name_id)
 
-        # TODO: create a snapshot in openstack
-        #  create a snapshot in truenas
-        #  then create a snapshot from that volume
+        # TODO: do a replication task since we are fully cloning the volume
+        #  not making a snapshot from it
 
         model_update = {
             'provider_id': truenas_volume_id,
@@ -171,14 +199,12 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         if not volume.metadata:
             model_update['metadata'] = {
-                'truenas_volume_id': truenas_volume_id,
-                'truenas_volume_from_snapshot_id': ''
+                'truenas_volume_id': truenas_volume_id
             }
         else:
             model_update['metadata'] = {
                 **volume.metadata,
-                'truenas_volume_id': truenas_volume_id,
-                'truenas_volume_from_snapshot_id': ''
+                'truenas_volume_id': truenas_volume_id
             }
 
         return model_update
@@ -228,11 +254,20 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         try:
             self.truenas_client.delete_snapshot(snapshot.provider_id)
-        except requests.exceptions.HTTPError:
-            # HTTP Error usually means the snapshot is in use
-            # so just return snapshot is busy
-            # TODO: are there other errors we care about?
-            raise SnapshotIsBusy()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 422:
+                try:
+                    # snapshot not found so return safely
+                    if e.response.json()['errno'] == errno.ENOENT:
+                        return
+
+                    # snapshot is in use so raise is busy
+                    if e.response.json()['errno'] == errno.EFAULT:
+                        raise SnapshotIsBusy()
+                except json.JSONDecoder:
+                    raise e
+
+            raise e
 
     def delete_volume(self, volume: Volume):
         if volume.provider_id is None:
@@ -240,9 +275,20 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             LOG.info("Volume %s has no provider_id during a delete so ignore it" % volume.id)
             return
 
-        self.truenas_client.delete_dataset(volume.provider_id)
+        try:
+            self.truenas_client.delete_dataset(volume.provider_id)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 422:
+                try:
+                    # volume not found so return safely
+                    if e.response.json()['errno'] == errno.ENOENT:
+                        return
+                except json.JSONDecoder:
+                    raise e
 
-    def extend_volume(self, volume: Volume, new_size):
+            raise e
+
+    def extend_volume(self, volume: Volume, new_size: int):
         if volume.provider_id is None:
             # volume has no provider id, so we didn't actually create it
             raise VolumeDriverException("volume %s does not exist in TrueNAS so we cant expand it" % volume.id)
@@ -252,5 +298,25 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         # unsure how to report this back to openstack as openstack only uses round number sizing
         self.truenas_client.expand_zvol(volume.provider_id, new_size * 1024 * 1024 * 1024)
 
-    def remove_export(self, context, volume):
+    def create_export(self, context: RequestContext, volume: Volume, connector: dict) -> dict:
+        if volume.provider_id is None:
+            # volume has no provider id, so we didn't actually create it
+            raise VolumeDriverException(
+                "Volume %s does not have provider_id set so we cannot create export" % volume.id)
+
+        # TODO: create/update iscsi things in truenas
+        #  Target iscsi/target - ids are generated by truenas so we need to save this in metadata
+        #  Extends iscsi/extent - ids are generated by truenas so we need to save this in metadata
+        #  Associated Targets iscsi/targetextent - ids are generated by truenas so we need to save this in metadata
+
+        return {}
+
+    def remove_export(self, context: RequestContext, volume: Volume):
+        if volume.provider_id is None:
+            # volume has no provider id, so we didn't actually create it
+            raise VolumeDriverException(
+                "Volume %s does not have provider_id set so we cannot remove export" % volume.id)
+
+        # TODO: delete iscsi things in truenas
+
         pass

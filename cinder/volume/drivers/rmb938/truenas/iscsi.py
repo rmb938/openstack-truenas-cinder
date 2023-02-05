@@ -88,19 +88,21 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             raise VolumeDriverException(
                 "Volume %s does not have provider_id set so we cannot make a connection" % volume.id)
 
-        # TODO: we don't create anything here in truenas, just form this info
-
         # TODO: support multi-path somehow, would be multiple ips on the portal, but the iqn is the same?
+
+        iscsi_global = self.truenas_client.get_iscsi_global()
+
+        iscsi_portal = self.truenas_client.get_iscsi_portal(portal_id="1")  # TODO: make this configurable
+        if iscsi_portal is None:
+            raise VolumeDriverException("Could not find iscsi portal")
+        # TODO: make sure the IP returned is not 0.0.0.0
 
         return {
             'driver_volume_type': 'iscsi',
             'data': {
                 'target_discovered': False,
-                'target_iqn': 'iqn.2005-10.org.freenas.ctl:$portalName',
-                # TODO: portalName is probably the volume.provider_id
-                # TODO: pull iqn.2005-10.org.freenas.ctl prefix from iscsi/global
-                'target_portal': '127.0.0.0.1:3260',
-                # TODO: pull from iscsi/portal/id/1 make the id configurable, make sure the IP returned is not 0.0.0.0
+                'target_iqn': f'{iscsi_global.basename}:{volume.name_id}',
+                'target_portal': f'{iscsi_portal.listen[0].ip}:{iscsi_portal.listen[0].port}',
                 'volume_id': volume.id,
                 'discard': False,
             }
@@ -290,7 +292,13 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
             raise e
 
         # Remove export during delete to clean up any leftover iscsi things
-        self.remove_export(None, volume)
+        if 'truenas_iscsi_target_id' in volume.admin_metadata and 'truenas_iscsi_extent_id' in volume.admin_metadata:
+            truenas_iscsi_target_id = volume.admin_metadata['truenas_iscsi_target_id']
+            truenas_iscsi_extent_id = volume.admin_metadata['truenas_iscsi_extent_id']
+            self.__remove_iscsi_export(
+                truenas_iscsi_target_id=truenas_iscsi_target_id,
+                truenas_iscsi_extent_id=truenas_iscsi_extent_id
+            )
 
     def extend_volume(self, volume: Volume, new_size: int):
         if volume.provider_id is None:
@@ -317,11 +325,27 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         #   - don't care about the id, it will poof when the extend or target is gone so we don't need to delete it
         #   - target + extend combos must be unique so check this error and ignore it
 
+        iscsi_target = self.truenas_client.create_iscsi_target(
+            name=volume.name_id,
+            portal_id=1,  # TODO: make this configurable
+        )
+
+        iscsi_disk_extent = self.truenas_client.create_iscsi_disk_extent(
+            name=volume.name_id,
+            block_size=512,  # TODO: make this configurable
+            disk_path=volume.provider_id,
+        )
+
+        self.truenas_client.create_iscsi_targetextent(
+            target_id=iscsi_target.id,
+            extent_id=iscsi_disk_extent.id
+        )
+
         model_update = {
             'admin_metadata': {
                 **volume.admin_metadata,
-                'truenas_iscsi_target_id': '0',
-                'truenas_iscsi_extent_id': '0',
+                'truenas_iscsi_target_id': f"{iscsi_target.id}",
+                'truenas_iscsi_extent_id': f"{iscsi_disk_extent.id}",
             }
         }
 
@@ -348,5 +372,11 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         truenas_iscsi_target_id = volume.admin_metadata['truenas_iscsi_target_id']
         truenas_iscsi_extent_id = volume.admin_metadata['truenas_iscsi_extent_id']
 
-        # TODO: delete extend
-        # TODO: delete target
+        self.__remove_iscsi_export(
+            truenas_iscsi_target_id=truenas_iscsi_target_id,
+            truenas_iscsi_extent_id=truenas_iscsi_extent_id
+        )
+
+    def __remove_iscsi_export(self, truenas_iscsi_target_id: str, truenas_iscsi_extent_id: str):
+        self.truenas_client.delete_iscsi_target(target_id=truenas_iscsi_target_id)
+        self.truenas_client.delete_iscsi_extent(extent_id=truenas_iscsi_extent_id)

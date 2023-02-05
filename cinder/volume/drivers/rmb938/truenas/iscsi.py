@@ -325,26 +325,10 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         #   - don't care about the id, it will poof when the extend or target is gone so we don't need to delete it
         #   - target + extend combos must be unique so check this error and ignore it
 
-        try:
-            iscsi_target = self.truenas_client.create_iscsi_target(
-                name=volume.name_id,
-                portal_id=1,  # TODO: make this configurable
-            )
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 422:
-                try:
-                    response_data = e.response.json()
-                    # if the error isn't about name re-raise
-                    if 'iscsi_target_create.name' not in response_data:
-                        raise e
-
-                    # if the error isn't about already exists re-raise
-                    if 'Target name already exists' != response_data['iscsi_target_create.name'][0]['message']:
-                        raise e
-                except json.JSONDecodeError:
-                    raise e
-            else:
-                raise e
+        iscsi_target = self.truenas_client.create_iscsi_target(
+            name=volume.name_id,
+            portal_id=1,  # TODO: make this configurable
+        )
 
         iscsi_disk_extent = self.truenas_client.create_iscsi_disk_extent(
             name=volume.name_id,

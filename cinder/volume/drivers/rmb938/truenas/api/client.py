@@ -195,7 +195,7 @@ class TrueNASAPIClient(object):
             "type": "DISK",
             "blocksize": block_size,
             "enabled": True,
-            "disk": disk_path
+            "disk": f"zvol/{disk_path}"
 
         }
 

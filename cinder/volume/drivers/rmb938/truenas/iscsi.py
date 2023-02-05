@@ -291,15 +291,6 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
             raise e
 
-        # Remove export during delete to clean up any leftover iscsi things
-        if 'truenas_iscsi_target_id' in volume.admin_metadata and 'truenas_iscsi_extent_id' in volume.admin_metadata:
-            truenas_iscsi_target_id = volume.admin_metadata['truenas_iscsi_target_id']
-            truenas_iscsi_extent_id = volume.admin_metadata['truenas_iscsi_extent_id']
-            self.__remove_iscsi_export(
-                truenas_iscsi_target_id=truenas_iscsi_target_id,
-                truenas_iscsi_extent_id=truenas_iscsi_extent_id
-            )
-
     def extend_volume(self, volume: Volume, new_size: int):
         if volume.provider_id is None:
             # volume has no provider id, so we didn't actually create it
@@ -378,18 +369,5 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
         )
 
     def __remove_iscsi_export(self, truenas_iscsi_target_id: str, truenas_iscsi_extent_id: str):
-        try:
-            self.truenas_client.delete_iscsi_target(target_id=truenas_iscsi_target_id)
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 422:
-                try:
-                    response_data = e.response.json()
-                    # volume not found so return safely
-                    if 'null' in response_data:
-                        if 'does not exist' in response_data['null'][0]['message']:
-                            return
-                except json.JSONDecodeError:
-                    raise e
-
-            raise e
+        self.truenas_client.delete_iscsi_target(target_id=truenas_iscsi_target_id)
         self.truenas_client.delete_iscsi_extent(extent_id=truenas_iscsi_extent_id)

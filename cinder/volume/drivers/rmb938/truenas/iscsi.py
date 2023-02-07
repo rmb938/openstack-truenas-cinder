@@ -193,6 +193,7 @@ class TrueNASISCSIDriver(driver.ISCSIDriver):
 
         # TODO: do a replication task since we are fully cloning the volume
         #  not making a snapshot from it
+        #  replication tasks can take a long time, so unsure how to do this nicely
 
         model_update = {
             'provider_id': truenas_volume_id,
